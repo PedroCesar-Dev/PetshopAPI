@@ -2,15 +2,15 @@ pipeline {
     agent any
 
     environment {
-        // Configurações de variáveis de ambiente
-        BUILD_DIR = 'PetshopAPI'  // Diretório do projeto (caso esteja no root, ajuste o caminho)
+        // ConfiguraÃ§Ãµes de variÃ¡veis de ambiente
+        BUILD_DIR = 'PetshopAPI'  // DiretÃ³rio do projeto (caso esteja no root, ajuste o caminho)
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Clonar o repositório
-                git branch: 'main', url: 'https://github.com/PedroCesar-Dev/PetshopAPI.git'
+                // Clonar o repositÃ³rio
+                git branch: 'master', url: 'https://github.com/PedroCesar-Dev/PetshopAPI.git'
             }
         }
 
@@ -25,7 +25,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Compilar a solução
+                // Compilar a soluÃ§Ã£o
                 script {
                     bat "dotnet build ${BUILD_DIR} --configuration Release --no-restore"
                 }
@@ -34,7 +34,7 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                // Rodar testes unitários
+                // Rodar testes unitÃ¡rios
                 script {
                     bat "dotnet test ${BUILD_DIR} --configuration Release --no-build"
                 }
@@ -43,7 +43,7 @@ pipeline {
 
         stage('Publish') {
             steps {
-                // Publicar a aplicação (opcional)
+                // Publicar a aplicaÃ§Ã£o (opcional)
                 script {
                     bat "dotnet publish ${BUILD_DIR} --configuration Release --output ./publish"
                 }
@@ -58,13 +58,13 @@ pipeline {
         }
 
         success {
-            // Ações a serem tomadas no caso de sucesso
-            echo 'Build e testes concluídos com sucesso!'
+            // AÃ§Ãµes a serem tomadas no caso de sucesso
+            echo 'Build e testes concluÃ­dos com sucesso!'
         }
 
         failure {
-            // Ações no caso de falha
-            echo 'Ocorreu um erro durante o build ou execução de testes.'
+            // AÃ§Ãµes no caso de falha
+            echo 'Ocorreu um erro durante o build ou execuÃ§Ã£o de testes.'
         }
     }
 }
