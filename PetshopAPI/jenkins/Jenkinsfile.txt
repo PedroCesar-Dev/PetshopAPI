@@ -2,21 +2,18 @@ pipeline {
     agent any
 
     environment {
-        // Configurações de variáveis de ambiente
         BUILD_DIR = 'PetshopAPI'  // Diretório do projeto (caso esteja no root, ajuste o caminho)
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Clonar o repositório
                 git branch: 'master', url: 'https://github.com/PedroCesar-Dev/PetshopAPI.git'
             }
         }
 
         stage('Restore Dependencies') {
             steps {
-                // Restaurar pacotes NuGet
                 script {
                     bat "dotnet restore ${BUILD_DIR}"
                 }
@@ -25,7 +22,6 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Compilar a solução
                 script {
                     bat "dotnet build ${BUILD_DIR} --configuration Release --no-restore"
                 }
@@ -34,7 +30,6 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                // Rodar testes unitários
                 script {
                     bat "dotnet test ${BUILD_DIR} --configuration Release --no-build"
                 }
@@ -42,18 +37,15 @@ pipeline {
         }
     }
     post {
-        always {
-            // Publicar resultados dos testes ou logs em todos os casos
-            xunit '**/TestResults/*.xml'  // Ajuste para o caminho correto dos resultados de teste
+        always {            
+            archiveArtifacts artifacts: 'publish/**', allowEmptyArchive: true
         }
 
-        success {
-            // Ações a serem tomadas no caso de sucesso
+        success {            
             echo 'Build e testes concluídos com sucesso!'
         }
 
-        failure {
-            // Ações no caso de falha
+        failure {            
             echo 'Ocorreu um erro durante o build ou execução de testes.'
         }
     }
