@@ -40,11 +40,11 @@ pipeline {
                 }
             }
         }
-
+    }
     post {
         always {
             // Publicar resultados dos testes ou logs em todos os casos
-            junit '**/TestResults/*.xml'  // Ajuste para o caminho correto dos resultados de teste
+            xunit '**/TestResults/*.xml'  // Ajuste para o caminho correto dos resultados de teste
         }
 
         success {
