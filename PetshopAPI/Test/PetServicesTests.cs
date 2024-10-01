@@ -1,71 +1,115 @@
-﻿using Moq;
-using PetshopAPI.Interfaces;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using PetshopAPI.Context;
+using PetshopAPI.Controllers;
 using PetshopAPI.Models;
-using PetshopAPI.Services;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace PetshopAPI.Test
+public class PetControllerTests
 {
-    public class PetServicesTests
+    private PetDbContext GetInMemoryPetDbContext()
     {
-        private readonly Mock<IPetRepository> _petRepositoryMock;
-        private readonly PetService _petService;
+        var options = new DbContextOptionsBuilder<PetDbContext>()
+            .UseInMemoryDatabase(databaseName: "PetDatabase")
+            .Options;
+        return new PetDbContext(options);
+    }
 
-        public PetServicesTests() 
-        {
-            _petRepositoryMock = new Mock<IPetRepository>();
-            _petService = new PetService(_petRepositoryMock.Object);
-        }
+    [Fact]
+    public async Task GetPet_ReturnsOkResult()
+    {
+        var context = GetInMemoryPetDbContext();
+        context.Pets.Add(new Pet { Id = 1, Name = "Buddy", Raca = "Golden Retriever", Idade = 3, Genero = "Male" });
+        context.Pets.Add(new Pet { Id = 2, Name = "Max", Raca = "Labrador", Idade = 2, Genero = "Male" });
+        await context.SaveChangesAsync();
 
-        [Fact]
-        public void GetPetById()
-        {            
-            var petId = 1;
-            var pet = new Pet { Id = petId, Name = "Bob", Raca = "Pastor alemão", Genero = "M", Idade = 5 };
+        var controller = new PetController(context);
 
-            _petRepositoryMock.Setup(repo => repo.GetPetById(petId)).Returns(pet);
+        var result = await controller.GetPet();
 
-            var result = _petService.GetPetById(petId);
-            Assert.NotNull(result);
-            Assert.Equal(petId, result.Id);
-            Assert.Equal("Bob", result.Name);
-        }
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnValue = Assert.IsType<dynamic>(okResult.Value);
+        Assert.True(returnValue.success);
+        Assert.Equal(2, returnValue.data.Count);
+    }
 
-        [Fact]
-        public void AddById()
-        {
-            var pet = new Pet { Id = 2, Name = "Teo", Raca = "Border Collie", Genero = "M", Idade = 10 };
+    [Fact]
+    public async Task CreatePet_ReturnsOkResult_WithCreatedPet()
+    {
+        var context = GetInMemoryPetDbContext();
+        var controller = new PetController(context);
 
-            _petService.AddPet(pet);
+        var newPet = new Pet { Id = 3, Name = "Charlie", Raca = "Poodle", Idade = 4, Genero = "Male" };
 
-            _petRepositoryMock.Verify(repo => repo.AddPet(pet), Times.Once);
-        }
+        var result = await controller.CreatePet(newPet);
 
-        [Fact]
-        public void DeleteById()
-        {
-            var petId = 1;
-            
-            _petService.DeletePetById(petId);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnValue = Assert.IsType<dynamic>(okResult.Value);
+        Assert.True(returnValue.success);
+        Assert.Equal("Charlie", returnValue.data.Name);
+    }
 
-            _petRepositoryMock.Verify(repo => repo.DeletePetById(petId), Times.Once);
-        }
+    [Fact]
+    public async Task UpdatePet_ReturnsNotFound_WhenPetDoesNotExist()
+    {
+        var context = GetInMemoryPetDbContext();
+        var controller = new PetController(context);
 
-        [Fact]
-        public void GetAllPets() 
-        {
-            var pets = new List<Pet>
-            {
-                new Pet { Id = 1, Name = "Bob", Raca = "Pastor alemão", Genero = "M", Idade = 5 },
-                new Pet { Id = 2, Name = "Teo", Raca = "Border Collie", Genero = "M", Idade = 10 }
-            };
+        var petUpdate = new Pet { Name = "UpdatedName", Raca = "UpdatedRaca", Idade = 5, Genero = "Female" };
 
-            _petRepositoryMock.Setup(repo => repo.GetAllPets()).Returns(pets);
+        var result = await controller.UpdatePet(1, petUpdate);
 
-            var result = _petService.GetAllPets();
+        Assert.IsType<NotFoundResult>(result);
+    }
 
-            Assert.Equal(2, result.Count);
-            Assert.Contains(result, p => p.Name == "Bob");
-        }
+    [Fact]
+    public async Task UpdatePet_ReturnsOkResult_WithUpdatedPet()
+    {
+        var context = GetInMemoryPetDbContext();
+        var existingPet = new Pet { Id = 1, Name = "Buddy", Raca = "Golden Retriever", Idade = 3, Genero = "Male" };
+        context.Pets.Add(existingPet);
+        await context.SaveChangesAsync();
+
+        var controller = new PetController(context);
+
+        var updatedPet = new Pet { Name = "UpdatedName", Raca = "UpdatedRaca", Idade = 5, Genero = "Female" };
+
+        var result = await controller.UpdatePet(1, updatedPet);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnValue = Assert.IsType<dynamic>(okResult.Value);
+        Assert.True(returnValue.success);
+        Assert.Equal("UpdatedName", returnValue.data.Name);
+    }
+
+    [Fact]
+    public async Task DeletePet_ReturnsNotFound_WhenPetDoesNotExist()
+    {
+        var context = GetInMemoryPetDbContext();
+        var controller = new PetController(context);
+
+        var result = await controller.DeletePet(99);
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeletePet_ReturnsOkResult_WhenPetIsDeleted()
+    {
+        var context = GetInMemoryPetDbContext();
+        var pet = new Pet { Id = 1, Name = "Buddy", Raca = "Golden Retriever", Idade = 3, Genero = "Male" };
+        context.Pets.Add(pet);
+        await context.SaveChangesAsync();
+
+        var controller = new PetController(context);
+
+        var result = await controller.DeletePet(1);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnValue = Assert.IsType<dynamic>(okResult.Value);
+        Assert.True(returnValue.success);
     }
 }
